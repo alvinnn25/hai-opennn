@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semoga Lekas Sembuh! ❤️</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS untuk styling */
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #28a745;
+            --accent-color: #dc3545;
+            --bg-light: #f8f9fa;
+            --bg-gradient: linear-gradient(135deg, #e0f2f7, #c9e6f3);
+            --text-dark: #343a40;
+            --text-medium: #6c757d;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            text-align: center;
+            color: var(--text-dark);
+            overflow-x: hidden; /* Mencegah scroll horizontal */
+            line-height: 1.6;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 45px 35px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            max-width: 90%;
+            width: 500px;
+            animation: fadeInScale 1.5s ease-out forwards;
+            position: relative;
+            z-index: 10;
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: translateY(-30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        h2 {
+            color: var(--secondary-color);
+            font-weight: 400;
+            margin-top: 5px;
+            margin-bottom: 25px;
+            font-size: 1.3em;
+        }
+
+        p {
+            margin-bottom: 20px;
+            color: var(--text-medium);
+            font-size: 1.05em;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        #friendNameInput {
+            width: calc(100% - 20px);
+            padding: 12px 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            text-align: center;
+            transition: border-color 0.3s ease;
+        }
+
+        #friendNameInput:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        .message-box {
+            background-color: var(--bg-light);
+            border-left: 5px solid var(--primary-color);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 25px;
+            min-height: 80px; /* Agar tidak terlalu banyak bergerak saat pesan berubah */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-style: italic;
+            color: var(--text-dark);
+            font-size: 1.1em;
+            transition: all 0.5s ease-in-out;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .message-box.active {
+            animation: messagePop 0.6s ease-out;
+        }
+
+        @keyframes messagePop {
+            0% { transform: scale(0.9); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .action-button {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 14px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 25px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 8px 15px rgba(var(--accent-color-rgb-r), var(--accent-color-rgb-g), var(--accent-color-rgb-b), 0.3);
+        }
+        /* Convert accent-color to rgb for rgba shadow */
+        body {
+            --accent-color-rgb-r: 220;
+            --accent-color-rgb-g: 53;
+            --accent-color-rgb-b: 69;
+        }
+
+
+        .action-button:hover {
+            background-color: #c82333; /* Darker red */
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(var(--accent-color-rgb-r), var(--accent-color-rgb-g), var(--accent-color-rgb-b), 0.4);
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 10px rgba(var(--accent-color-rgb-r), var(--accent-color-rgb-g), var(--accent-color-rgb-b), 0.2);
+        }
+
+        .heart-emoji {
+            font-size: 3em;
+            margin-top: 30px;
+            display: inline-block;
+            animation: beat 1s infinite alternate;
+            color: var(--accent-color);
+        }
+
+        @keyframes beat {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        .footer-text {
+            font-size: 0.85em;
+            margin-top: 25px;
+            color: var(--text-medium);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+            h1 { font-size: 1.8em; }
+            h2 { font-size: 1.1em; }
+            p { font-size: 0.95em; }
+            .action-button {
+                font-size: 1em;
+                padding: 12px 20px;
+            }
+            .heart-emoji { font-size: 2.5em; }
+        }
+
+        /* Floating elements for visual appeal */
+        .floating-element {
+            position: absolute;
+            opacity: 0.3;
+            animation: float 15s infinite ease-in-out;
+            pointer-events: none; /* Agar tidak mengganggu interaksi */
+        }
+        .floating-element:nth-child(1) { top: 10%; left: 10%; font-size: 4em; animation-delay: 0s; }
+        .floating-element:nth-child(2) { top: 20%; right: 15%; font-size: 3em; animation-delay: 2s; }
+        .floating-element:nth-child(3) { bottom: 15%; left: 20%; font-size: 3.5em; animation-delay: 4s; }
+        .floating-element:nth-child(4) { bottom: 5%; right: 10%; font-size: 4.5em; animation-delay: 6s; }
+        .floating-element:nth-child(5) { top: 5%; left: 40%; font-size: 2.5em; animation-delay: 8s; }
+        .floating-element:nth-child(6) { bottom: 25%; left: 5%; font-size: 2em; animation-delay: 10s; }
+        .floating-element:nth-child(7) { top: 18%; right: 5%; font-size: 2.8em; animation-delay: 12s; }
+
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-20px, 20px) rotate(5deg); }
+            50% { transform: translate(0, 0) rotate(0deg); }
+            75% { transform: translate(20px, -20px) rotate(-5deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="floating-element">✨</div>
+    <div class="floating-element">❤️</div>
+    <div class="floating-element">💊</div>
+    <div class="floating-element">🌟</div>
+    <div class="floating-element">😊</div>
+    <div class="floating-element">💪</div>
+    <div class="floating-element">🍀</div>
+
+    <div class="container">
+        <h1>Semangat Cepat Sembuh!</h1>
+        <h2 id="greetingText"></h2>
+        
+        <p>
+            Hanni
+        </p>
+
+        <div class="input-group">
+            <input type="text" id="friendNameInput" placeholder="Dari Alvin">
+        </div>
+
+        <div id="messageBox" class="message-box">
+            "Cepat pulih dan bisa kembali beraktivitas!"
+        </div>
+
+        <button id="generateMessageBtn" class="action-button">Tekan Tombolnya! 🎉</button>
+
+        <span class="heart-emoji">❤️</span>
+        <p class="footer-text">
+            Alvin
+        </p>
+    </div>
+
+    <script>
+        const friendNameInput = document.getElementById('friendNameInput');
+        const greetingText = document.getElementById('greetingText');
+        const messageBox = document.getElementById('messageBox');
+        const generateMessageBtn = document.getElementById('generateMessageBtn');
+
+        const defaultMessages = [
+            "Cepat pulih yaaa!",
+            "Semangat terus, ya!.",
+            "Istirahat yang cukup, jaga kesehatan)",
+            "Jangan begadang terus!",
+            "Makannya dijaga yaa.",
+            "Kalau sembuh kan bisa ngisengin.",
+            "Cillll,, Bocillll!",
+            "Jangan senyum senyum luuu HAHAHHAHAAA !"
+        ];
+
+        // Fungsi untuk memperbarui sapaan saat nama diinput
+        friendNameInput.addEventListener('input', () => {
+            const name = friendNameInput.value.trim();
+            if (name) {
+                greetingText.textContent = `Hai, ${name}! Hanni`;
+            } else {
+                greetingText.textContent = `Get Well Son`;
+            }
+        });
+
+        // Fungsi untuk menghasilkan pesan acak
+        generateMessageBtn.addEventListener('click', () => {
+            const randomMessage = defaultMessages[Math.floor(Math.random() * defaultMessages.length)];
+            const name = friendNameInput.value.trim();
+            
+            let finalMessage = randomMessage;
+            if (name) {
+                // Tambahkan nama di awal pesan jika ada
+                finalMessage = `Hai ${name}, ${randomMessage}`;
+            }
+
+            // Tambahkan kelas untuk animasi sebelum mengubah teks
+            messageBox.classList.remove('active'); // Hapus dulu jika sudah ada
+            void messageBox.offsetWidth; // Force reflow (trik agar animasi berjalan lagi)
+            messageBox.textContent = finalMessage;
+            messageBox.classList.add('active');
+        });
+
+        // Inisialisasi teks sapaan dan pesan awal
+        document.addEventListener('DOMContentLoaded', () => {
+            greetingText.textContent = `Cepat Sembuhh`;
+            messageBox.textContent = defaultMessages[0]; // Tampilkan pesan pertama saat loading
+        });
+
+        // JavaScript sederhana untuk mengubah judul tab
+        document.addEventListener('DOMContentLoaded', () => {
+            const originalTitle = document.title;
+            let count = 0;
+            const titles = ["💊 Lekas Sembuh!", "✨ Cepat Pulih!", originalTitle];
+
+            // Ganti judul setiap 2 detik sebagai perhatian
+            setInterval(() => {
+                document.title = titles[count % titles.length];
+                count++;
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
