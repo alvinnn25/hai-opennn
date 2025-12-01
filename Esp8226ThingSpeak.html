@@ -1,0 +1,211 @@
+<!--
+ESP8266 Relay Control (ThingSpeak)
+File: ESP8266-Relay-ThingSpeak-Web.html
+
+Instruksi singkat:
+1) Ganti nilai CHANNEL_ID, WRITE_API_KEY, READ_API_KEY pada bagian <script> di bawah.
+2) Upload file ini ke webserver statis (GitHub Pages, Netlify, atau buka lokal dengan Live Server).
+3) Jika browser menolak karena CORS, gunakan simple proxy atau serve file dari server (Live Server biasanya OK).
+
+Fitur:
+- Menampilkan status Relay 1 & 2 dari ThingSpeak (field1, field2)
+- Tombol ON / OFF untuk masing-masing relay (menggunakan Write API ThingSpeak)
+- Auto-refresh status setiap 5 detik
+- Menampilkan log singkat dan waktu update terakhir
+-->
+
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kontrol Relay 2 Channel (ThingSpeak)</title>
+  <style>
+    :root{--bg:#0f1720;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--success:#16a34a;--danger:#ef4444}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#071024 0%,#0b1220 100%);color:#e6eef6;padding:28px}
+    .container{max-width:900px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted)}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:20px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+    .relays{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+    .relay{padding:16px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.03)}
+    .relay h2{margin:0 0 8px 0;font-size:16px}
+    .status{font-weight:700;margin-bottom:8px}
+    .on{color:var(--success)}.off{color:var(--muted)}
+    .controls{display:flex;gap:8px}
+    button{appearance:none;border:0;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer}
+    .btn-on{background:linear-gradient(90deg,#10b981, #06b6d4);color:#042023}
+    .btn-off{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff}
+    .small{font-size:13px;color:var(--muted)}
+    .row{display:flex;align-items:center;gap:12px}
+    .log{margin-top:12px;font-size:13px;color:var(--muted)}
+    .config{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    input[type=text]{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    .footer{margin-top:14px;font-size:13px;color:var(--muted)}
+    @media (max-width:700px){.relays{grid-template-columns:1fr}} 
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Kontrol Relay 2 Channel — ThingSpeak</h1>
+        <p class="lead">Kontrol dan lihat status relay lewat ThingSpeak (field1 &amp; field2).</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="row">
+        <div style="flex:1">
+          <div class="small">Channel ID</div>
+          <input id="channelId" type="text" placeholder="3187992" value="3187992">
+        </div>
+        <div style="flex:1">
+          <div class="small">Read API Key</div>
+          <input id="readKey" type="text" placeholder="READ_API_KEY" value="VJT0KIQCRG7I81L6">
+        </div>
+        <div style="flex:1">
+          <div class="small">Write API Key</div>
+          <input id="writeKey" type="text" placeholder="WRITE_API_KEY" value="CUX3NNS31CUL4A6Z">
+        </div>
+        <div style="width:140px;display:flex;align-items:end">
+          <button id="saveBtn" class="btn-on">Simpan</button>
+        </div>
+      </div>
+
+      <div class="relays">
+        <div class="relay" id="relay1Card">
+          <h2>Relay 1</h2>
+          <div class="status">Status: <span id="relay1Status" class="off">—</span></div>
+          <div class="controls">
+            <button data-field="1" data-value="1" class="btn-on">ON</button>
+            <button data-field="1" data-value="0" class="btn-off">OFF</button>
+          </div>
+          <div class="log" id="relay1Log">—</div>
+        </div>
+
+        <div class="relay" id="relay2Card">
+          <h2>Relay 2</h2>
+          <div class="status">Status: <span id="relay2Status" class="off">—</span></div>
+          <div class="controls">
+            <button data-field="2" data-value="1" class="btn-on">ON</button>
+            <button data-field="2" data-value="0" class="btn-off">OFF</button>
+          </div>
+          <div class="log" id="relay2Log">—</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div>Last update: <span id="lastUpdate">—</span></div>
+        <div id="message" style="margin-top:6px;color:var(--muted)"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Konfigurasi default (ganti dari UI di atas) ---
+    let CHANNEL_ID = document.getElementById('channelId').value;
+    let READ_KEY   = document.getElementById('readKey').value;
+    let WRITE_KEY  = document.getElementById('writeKey').value; // Kosongkan jika tidak ada
+
+    const statusEl1 = document.getElementById('relay1Status');
+    const statusEl2 = document.getElementById('relay2Status');
+    const lastEl = document.getElementById('lastUpdate');
+    const msgEl = document.getElementById('message');
+    const log1 = document.getElementById('relay1Log');
+    const log2 = document.getElementById('relay2Log');
+
+    // Simpel helper untuk fetch JSON terakhir field
+    async function readField(channel, field, readKey){
+      const url = `https://api.thingspeak.com/channels/${channel}/fields/${field}/last.json?api_key=${readKey}`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
+
+    async function updateField(channel, field, value, writeKey){
+      if(!writeKey) throw new Error('Write API Key belum diisi');
+      const url = `https://api.thingspeak.com/update?api_key=${writeKey}&field${field}=${value}`;
+      const res = await fetch(url, { method: 'GET' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      return text; // ThingSpeak returns entry id atau 0
+    }
+
+    async function refreshStatus(){
+      CHANNEL_ID = document.getElementById('channelId').value;
+      READ_KEY   = document.getElementById('readKey').value;
+      WRITE_KEY  = document.getElementById('writeKey').value;
+
+      try{
+        msgEl.textContent = 'Mengambil status...';
+        const j1 = await readField(CHANNEL_ID, 1, READ_KEY);
+        const j2 = await readField(CHANNEL_ID, 2, READ_KEY);
+
+        // Some ThingSpeak responses may be just a raw value; but last.json returns JSON with 'field1' or 'value'
+        const val1 = (j1 && (j1.field1 !== undefined ? j1.field1 : j1.value)) || null;
+        const val2 = (j2 && (j2.field2 !== undefined ? j2.field2 : j2.value)) || null;
+
+        setRelayUI(1, val1);
+        setRelayUI(2, val2);
+
+        lastEl.textContent = new Date().toLocaleString();
+        msgEl.textContent = '';
+      } catch(err){
+        msgEl.textContent = 'Gagal ambil status: ' + err.message;
+      }
+    }
+
+    function setRelayUI(n, v){
+      const el = n === 1 ? statusEl1 : statusEl2;
+      const log = n === 1 ? log1 : log2;
+      if(v == null || v === "" || v === undefined){
+        el.textContent = '—';
+        el.className = 'off';
+        log.textContent = 'No data';
+      } else {
+        const isOn = (String(v) === '1');
+        el.textContent = isOn ? 'ON' : 'OFF';
+        el.className = isOn ? 'on' : 'off';
+        log.textContent = 'Nilai terakhir: ' + v;
+      }
+    }
+
+    // Tombol ON/OFF click
+    document.querySelectorAll('button[data-field]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const field = btn.getAttribute('data-field');
+        const value = btn.getAttribute('data-value');
+        CHANNEL_ID = document.getElementById('channelId').value;
+        WRITE_KEY  = document.getElementById('writeKey').value;
+
+        msgEl.textContent = `Mengirim field${field}=${value} ...`;
+        try{
+          const r = await updateField(CHANNEL_ID, field, value, WRITE_KEY);
+          msgEl.textContent = `Terkirim (resp: ${r}). Menunggu ThingSpeak memproses...`;
+          // Setelah update, tunggu sedikit kemudian ambil status lagi
+          setTimeout(refreshStatus, 2000);
+        } catch(err){
+          msgEl.textContent = 'Gagal kirim: ' + err.message;
+        }
+      });
+    });
+
+    // Save button (hanya buat refresh config)
+    document.getElementById('saveBtn').addEventListener('click', (e)=>{
+      CHANNEL_ID = document.getElementById('channelId').value;
+      READ_KEY   = document.getElementById('readKey').value;
+      WRITE_KEY  = document.getElementById('writeKey').value;
+      msgEl.textContent = 'Konfigurasi disimpan.';
+      setTimeout(()=>msgEl.textContent='',1500);
+    });
+
+    // Auto refresh setiap 5 detik
+    refreshStatus();
+    setInterval(refreshStatus, 5000);
+
+  </script>
+</body>
+</html>
