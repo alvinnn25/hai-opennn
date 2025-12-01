@@ -1,311 +1,211 @@
+<!--
+ESP8266 Relay Control (ThingSpeak)
+File: ESP8266-Relay-ThingSpeak-Web.html
+
+Instruksi singkat:
+1) Ganti nilai CHANNEL_ID, WRITE_API_KEY, READ_API_KEY pada bagian <script> di bawah.
+2) Upload file ini ke webserver statis (GitHub Pages, Netlify, atau buka lokal dengan Live Server).
+3) Jika browser menolak karena CORS, gunakan simple proxy atau serve file dari server (Live Server biasanya OK).
+
+Fitur:
+- Menampilkan status Relay 1 & 2 dari ThingSpeak (field1, field2)
+- Tombol ON / OFF untuk masing-masing relay (menggunakan Write API ThingSpeak)
+- Auto-refresh status setiap 5 detik
+- Menampilkan log singkat dan waktu update terakhir
+-->
+
+<!doctype html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semoga Lekas Sembuh! ❤️</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* CSS untuk styling */
-        :root {
-            --primary-color: #007bff;
-            --secondary-color: #28a745;
-            --accent-color: #dc3545;
-            --bg-light: #f8f9fa;
-            --bg-gradient: linear-gradient(135deg, #e0f2f7, #c9e6f3);
-            --text-dark: #343a40;
-            --text-medium: #6c757d;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: var(--bg-gradient);
-            text-align: center;
-            color: var(--text-dark);
-            overflow-x: hidden; /* Mencegah scroll horizontal */
-            line-height: 1.6;
-        }
-
-        .container {
-            background-color: #ffffff;
-            padding: 45px 35px;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-            max-width: 90%;
-            width: 500px;
-            animation: fadeInScale 1.5s ease-out forwards;
-            position: relative;
-            z-index: 10;
-        }
-
-        @keyframes fadeInScale {
-            from { opacity: 0; transform: translateY(-30px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        h1 {
-            color: var(--primary-color);
-            font-weight: 700;
-            margin-bottom: 10px;
-            font-size: 2.2em;
-        }
-
-        h2 {
-            color: var(--secondary-color);
-            font-weight: 400;
-            margin-top: 5px;
-            margin-bottom: 25px;
-            font-size: 1.3em;
-        }
-
-        p {
-            margin-bottom: 20px;
-            color: var(--text-medium);
-            font-size: 1.05em;
-        }
-
-        .input-group {
-            margin-bottom: 25px;
-        }
-
-        #friendNameInput {
-            width: calc(100% - 20px);
-            padding: 12px 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-            text-align: center;
-            transition: border-color 0.3s ease;
-        }
-
-        #friendNameInput:focus {
-            border-color: var(--primary-color);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-        }
-
-        .message-box {
-            background-color: var(--bg-light);
-            border-left: 5px solid var(--primary-color);
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 25px;
-            min-height: 80px; /* Agar tidak terlalu banyak bergerak saat pesan berubah */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-style: italic;
-            color: var(--text-dark);
-            font-size: 1.1em;
-            transition: all 0.5s ease-in-out;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        }
-        
-        .message-box.active {
-            animation: messagePop 0.6s ease-out;
-        }
-
-        @keyframes messagePop {
-            0% { transform: scale(0.9); opacity: 0; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .action-button {
-            background-color: var(--accent-color);
-            color: white;
-            padding: 14px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 25px;
-            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            box-shadow: 0 8px 15px rgba(var(--accent-color-rgb-r), var(--accent-color-rgb-g), var(--accent-color-rgb-b), 0.3);
-        }
-        /* Convert accent-color to rgb for rgba shadow */
-        body {
-            --accent-color-rgb-r: 220;
-            --accent-color-rgb-g: 53;
-            --accent-color-rgb-b: 69;
-        }
-
-
-        .action-button:hover {
-            background-color: #c82333; /* Darker red */
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(var(--accent-color-rgb-r), var(--accent-color-rgb-g), var(--accent-color-rgb-b), 0.4);
-        }
-
-        .action-button:active {
-            transform: translateY(0);
-            box-shadow: 0 5px 10px rgba(var(--accent-color-rgb-r), var(--accent-color-rgb-g), var(--accent-color-rgb-b), 0.2);
-        }
-
-        .heart-emoji {
-            font-size: 3em;
-            margin-top: 30px;
-            display: inline-block;
-            animation: beat 1s infinite alternate;
-            color: var(--accent-color);
-        }
-
-        @keyframes beat {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.1); }
-        }
-
-        .footer-text {
-            font-size: 0.85em;
-            margin-top: 25px;
-            color: var(--text-medium);
-        }
-
-        /* Responsive Design */
-        @media (max-width: 600px) {
-            .container {
-                padding: 30px 20px;
-                margin: 20px;
-            }
-            h1 { font-size: 1.8em; }
-            h2 { font-size: 1.1em; }
-            p { font-size: 0.95em; }
-            .action-button {
-                font-size: 1em;
-                padding: 12px 20px;
-            }
-            .heart-emoji { font-size: 2.5em; }
-        }
-
-        /* Floating elements for visual appeal */
-        .floating-element {
-            position: absolute;
-            opacity: 0.3;
-            animation: float 15s infinite ease-in-out;
-            pointer-events: none; /* Agar tidak mengganggu interaksi */
-        }
-        .floating-element:nth-child(1) { top: 10%; left: 10%; font-size: 4em; animation-delay: 0s; }
-        .floating-element:nth-child(2) { top: 20%; right: 15%; font-size: 3em; animation-delay: 2s; }
-        .floating-element:nth-child(3) { bottom: 15%; left: 20%; font-size: 3.5em; animation-delay: 4s; }
-        .floating-element:nth-child(4) { bottom: 5%; right: 10%; font-size: 4.5em; animation-delay: 6s; }
-        .floating-element:nth-child(5) { top: 5%; left: 40%; font-size: 2.5em; animation-delay: 8s; }
-        .floating-element:nth-child(6) { bottom: 25%; left: 5%; font-size: 2em; animation-delay: 10s; }
-        .floating-element:nth-child(7) { top: 18%; right: 5%; font-size: 2.8em; animation-delay: 12s; }
-
-
-        @keyframes float {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            25% { transform: translate(-20px, 20px) rotate(5deg); }
-            50% { transform: translate(0, 0) rotate(0deg); }
-            75% { transform: translate(20px, -20px) rotate(-5deg); }
-            100% { transform: translate(0, 0) rotate(0deg); }
-        }
-
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kontrol Relay 2 Channel (ThingSpeak)</title>
+  <style>
+    :root{--bg:#0f1720;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--success:#16a34a;--danger:#ef4444}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#071024 0%,#0b1220 100%);color:#e6eef6;padding:28px}
+    .container{max-width:900px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted)}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:20px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+    .relays{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+    .relay{padding:16px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.03)}
+    .relay h2{margin:0 0 8px 0;font-size:16px}
+    .status{font-weight:700;margin-bottom:8px}
+    .on{color:var(--success)}.off{color:var(--muted)}
+    .controls{display:flex;gap:8px}
+    button{appearance:none;border:0;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer}
+    .btn-on{background:linear-gradient(90deg,#10b981, #06b6d4);color:#042023}
+    .btn-off{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff}
+    .small{font-size:13px;color:var(--muted)}
+    .row{display:flex;align-items:center;gap:12px}
+    .log{margin-top:12px;font-size:13px;color:var(--muted)}
+    .config{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    input[type=text]{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    .footer{margin-top:14px;font-size:13px;color:var(--muted)}
+    @media (max-width:700px){.relays{grid-template-columns:1fr}} 
+  </style>
 </head>
 <body>
-    <div class="floating-element">✨</div>
-    <div class="floating-element">❤️</div>
-    <div class="floating-element">💊</div>
-    <div class="floating-element">🌟</div>
-    <div class="floating-element">😊</div>
-    <div class="floating-element">💪</div>
-    <div class="floating-element">🍀</div>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Kontrol Relay 2 Channel — ThingSpeak</h1>
+        <p class="lead">Kontrol dan lihat status relay lewat ThingSpeak (field1 &amp; field2).</p>
+      </div>
+    </header>
 
-    <div class="container">
-        <h1>Semangat Cepat Sembuh!</h1>
-        <h2 id="greetingText"></h2>
-        
-        <p>
-            Hanni
-        </p>
+    <div class="card">
+      <div class="row">
+        <div style="flex:1">
+          <div class="small">Channel ID</div>
+          <input id="channelId" type="text" placeholder="3187992" value="3187992">
+        </div>
+        <div style="flex:1">
+          <div class="small">Read API Key</div>
+          <input id="readKey" type="text" placeholder="READ_API_KEY" value="VJT0KIQCRG7I81L6">
+        </div>
+        <div style="flex:1">
+          <div class="small">Write API Key</div>
+          <input id="writeKey" type="text" placeholder="WRITE_API_KEY" value="CUX3NNS31CUL4A6Z">
+        </div>
+        <div style="width:140px;display:flex;align-items:end">
+          <button id="saveBtn" class="btn-on">Simpan</button>
+        </div>
+      </div>
 
-        <div class="input-group">
-            <input type="text" id="friendNameInput" placeholder="Dari Alvin">
+      <div class="relays">
+        <div class="relay" id="relay1Card">
+          <h2>Relay 1</h2>
+          <div class="status">Status: <span id="relay1Status" class="off">—</span></div>
+          <div class="controls">
+            <button data-field="1" data-value="1" class="btn-on">ON</button>
+            <button data-field="1" data-value="0" class="btn-off">OFF</button>
+          </div>
+          <div class="log" id="relay1Log">—</div>
         </div>
 
-        <div id="messageBox" class="message-box">
-            "Cepat pulih dan bisa kembali beraktivitas!"
+        <div class="relay" id="relay2Card">
+          <h2>Relay 2</h2>
+          <div class="status">Status: <span id="relay2Status" class="off">—</span></div>
+          <div class="controls">
+            <button data-field="2" data-value="1" class="btn-on">ON</button>
+            <button data-field="2" data-value="0" class="btn-off">OFF</button>
+          </div>
+          <div class="log" id="relay2Log">—</div>
         </div>
+      </div>
 
-        <button id="generateMessageBtn" class="action-button">Tekan Tombolnya! 🎉</button>
-
-        <span class="heart-emoji">❤️</span>
-        <p class="footer-text">
-            Alvin
-        </p>
+      <div class="footer">
+        <div>Last update: <span id="lastUpdate">—</span></div>
+        <div id="message" style="margin-top:6px;color:var(--muted)"></div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const friendNameInput = document.getElementById('friendNameInput');
-        const greetingText = document.getElementById('greetingText');
-        const messageBox = document.getElementById('messageBox');
-        const generateMessageBtn = document.getElementById('generateMessageBtn');
+  <script>
+    // --- Konfigurasi default (ganti dari UI di atas) ---
+    let CHANNEL_ID = document.getElementById('channelId').value;
+    let READ_KEY   = document.getElementById('readKey').value;
+    let WRITE_KEY  = document.getElementById('writeKey').value; // Kosongkan jika tidak ada
 
-        const defaultMessages = [
-            "Cepat pulih yaaa!",
-            "Semangat terus, ya!.",
-            "Istirahat yang cukup, jaga kesehatan)",
-            "Jangan begadang terus!",
-            "Makannya dijaga yaa.",
-            "Kalau sembuh kan bisa ngisengin.",
-            "Cillll,, Bocillll!",
-            "Jangan senyum senyum luuu HAHAHHAHAAA !"
-        ];
+    const statusEl1 = document.getElementById('relay1Status');
+    const statusEl2 = document.getElementById('relay2Status');
+    const lastEl = document.getElementById('lastUpdate');
+    const msgEl = document.getElementById('message');
+    const log1 = document.getElementById('relay1Log');
+    const log2 = document.getElementById('relay2Log');
 
-        // Fungsi untuk memperbarui sapaan saat nama diinput
-        friendNameInput.addEventListener('input', () => {
-            const name = friendNameInput.value.trim();
-            if (name) {
-                greetingText.textContent = `Hai, ${name}! Hanni`;
-            } else {
-                greetingText.textContent = `Get Well Son`;
-            }
-        });
+    // Simpel helper untuk fetch JSON terakhir field
+    async function readField(channel, field, readKey){
+      const url = `https://api.thingspeak.com/channels/${channel}/fields/${field}/last.json?api_key=${readKey}`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
 
-        // Fungsi untuk menghasilkan pesan acak
-        generateMessageBtn.addEventListener('click', () => {
-            const randomMessage = defaultMessages[Math.floor(Math.random() * defaultMessages.length)];
-            const name = friendNameInput.value.trim();
-            
-            let finalMessage = randomMessage;
-            if (name) {
-                // Tambahkan nama di awal pesan jika ada
-                finalMessage = `Hai ${name}, ${randomMessage}`;
-            }
+    async function updateField(channel, field, value, writeKey){
+      if(!writeKey) throw new Error('Write API Key belum diisi');
+      const url = `https://api.thingspeak.com/update?api_key=${writeKey}&field${field}=${value}`;
+      const res = await fetch(url, { method: 'GET' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      return text; // ThingSpeak returns entry id atau 0
+    }
 
-            // Tambahkan kelas untuk animasi sebelum mengubah teks
-            messageBox.classList.remove('active'); // Hapus dulu jika sudah ada
-            void messageBox.offsetWidth; // Force reflow (trik agar animasi berjalan lagi)
-            messageBox.textContent = finalMessage;
-            messageBox.classList.add('active');
-        });
+    async function refreshStatus(){
+      CHANNEL_ID = document.getElementById('channelId').value;
+      READ_KEY   = document.getElementById('readKey').value;
+      WRITE_KEY  = document.getElementById('writeKey').value;
 
-        // Inisialisasi teks sapaan dan pesan awal
-        document.addEventListener('DOMContentLoaded', () => {
-            greetingText.textContent = `Cepat Sembuhh`;
-            messageBox.textContent = defaultMessages[0]; // Tampilkan pesan pertama saat loading
-        });
+      try{
+        msgEl.textContent = 'Mengambil status...';
+        const j1 = await readField(CHANNEL_ID, 1, READ_KEY);
+        const j2 = await readField(CHANNEL_ID, 2, READ_KEY);
 
-        // JavaScript sederhana untuk mengubah judul tab
-        document.addEventListener('DOMContentLoaded', () => {
-            const originalTitle = document.title;
-            let count = 0;
-            const titles = ["💊 Lekas Sembuh!", "✨ Cepat Pulih!", originalTitle];
+        // Some ThingSpeak responses may be just a raw value; but last.json returns JSON with 'field1' or 'value'
+        const val1 = (j1 && (j1.field1 !== undefined ? j1.field1 : j1.value)) || null;
+        const val2 = (j2 && (j2.field2 !== undefined ? j2.field2 : j2.value)) || null;
 
-            // Ganti judul setiap 2 detik sebagai perhatian
-            setInterval(() => {
-                document.title = titles[count % titles.length];
-                count++;
-            }, 2000);
-        });
-    </script>
+        setRelayUI(1, val1);
+        setRelayUI(2, val2);
+
+        lastEl.textContent = new Date().toLocaleString();
+        msgEl.textContent = '';
+      } catch(err){
+        msgEl.textContent = 'Gagal ambil status: ' + err.message;
+      }
+    }
+
+    function setRelayUI(n, v){
+      const el = n === 1 ? statusEl1 : statusEl2;
+      const log = n === 1 ? log1 : log2;
+      if(v == null || v === "" || v === undefined){
+        el.textContent = '—';
+        el.className = 'off';
+        log.textContent = 'No data';
+      } else {
+        const isOn = (String(v) === '1');
+        el.textContent = isOn ? 'ON' : 'OFF';
+        el.className = isOn ? 'on' : 'off';
+        log.textContent = 'Nilai terakhir: ' + v;
+      }
+    }
+
+    // Tombol ON/OFF click
+    document.querySelectorAll('button[data-field]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const field = btn.getAttribute('data-field');
+        const value = btn.getAttribute('data-value');
+        CHANNEL_ID = document.getElementById('channelId').value;
+        WRITE_KEY  = document.getElementById('writeKey').value;
+
+        msgEl.textContent = `Mengirim field${field}=${value} ...`;
+        try{
+          const r = await updateField(CHANNEL_ID, field, value, WRITE_KEY);
+          msgEl.textContent = `Terkirim (resp: ${r}). Menunggu ThingSpeak memproses...`;
+          // Setelah update, tunggu sedikit kemudian ambil status lagi
+          setTimeout(refreshStatus, 2000);
+        } catch(err){
+          msgEl.textContent = 'Gagal kirim: ' + err.message;
+        }
+      });
+    });
+
+    // Save button (hanya buat refresh config)
+    document.getElementById('saveBtn').addEventListener('click', (e)=>{
+      CHANNEL_ID = document.getElementById('channelId').value;
+      READ_KEY   = document.getElementById('readKey').value;
+      WRITE_KEY  = document.getElementById('writeKey').value;
+      msgEl.textContent = 'Konfigurasi disimpan.';
+      setTimeout(()=>msgEl.textContent='',1500);
+    });
+
+    // Auto refresh setiap 5 detik
+    refreshStatus();
+    setInterval(refreshStatus, 5000);
+
+  </script>
 </body>
 </html>
